@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import './App.css'
 import {buildTreeFromCsv, convertUpmu} from './utils/index'
 import { IIssueCSV } from './utils/interface'

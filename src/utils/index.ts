@@ -65,7 +65,7 @@ export function csvToJson(csvString:string): object[] {
   // Step 2: Split the header row and check for duplicate columns
   const headers = rows[0].split(",");
   const headerMap: { [key: string]: number } = {}; // Track column indices
-  const uniqueHeaders = headers.map((header, index) => {
+  const uniqueHeaders = headers.map((header) => {
       const trimmedHeader = header.trim();
       if (headerMap[trimmedHeader]) {
           headerMap[trimmedHeader]++;
