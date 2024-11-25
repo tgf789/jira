@@ -1,7 +1,7 @@
 import {IIssueCSV} from "./interface"
  
 
-export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true) {
+export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):string {
   return csvList.map((csv,i) => {
     let text = ""
     if(isRoot){
@@ -14,10 +14,10 @@ export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true) {
       let progress = csv["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
       const progressStr = (progress)+"%"
       if(csv["사용자정의 필드 (담당자(부))"]){
-        subManager+=`/${csv[`사용자정의 필드 (담당자(부))`]}`;
+        subManager+=`/${idList[csv[`사용자정의 필드 (담당자(부))`]]}`;
         let subManagerIndex = 2
         while(csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]){
-          subManager+=`/${csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]}`;
+          subManager+=`/${idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]]}`;
           subManagerIndex++
         }
       }
@@ -42,7 +42,7 @@ export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true) {
 
       }
       
-      text = `${depthSpace}${depthNumberStr}${csv["요약"]} (${csv["children"]?.length === 0 ? csv["담당자"]+subManager+", " : ""}~${dateStr}, ${progressStr})\n`
+      text = `${depthSpace}${depthNumberStr}${csv["요약"]} (${csv["children"]?.length === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})\n`
       if(remark){
         text += `${depthSpace}  ${remark}\n`
       }
@@ -50,7 +50,7 @@ export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true) {
     }
 
     if(csv["children"]?.length > 0){
-      const childText = convertUpmu(csv["children"],depth+1,false)
+      const childText = convertUpmu(csv["children"],depth+1,false,idList)
       text += childText
     }
 
