@@ -1,7 +1,89 @@
-import {IIssueCSV} from "./interface"
- 
+import {IIssueCSV, IWeeklyUpmu} from "./interface"
 
-export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):string {
+export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):IWeeklyUpmu {
+
+  let textList = {
+    "주요내용" : "",
+    "출시목표" : "",
+    "우선순위" : "",
+    "상태" : "",
+    "실적" : "",
+    "담당자" : ""
+  }
+
+  const manager : string[] = []
+
+  csvList.forEach((csv,i) => {
+    if(isRoot){
+      const text = `${csv["요약"]}\n`
+      textList["주요내용"] += text
+      textList["출시목표"] += "\n"
+      textList["우선순위"] += "\n"
+      textList["상태"] += "\n"
+      textList["실적"] += "\n"
+      textList["담당자"] += "\n"
+    }else{
+      const depthNumberStr = ["","","-","  >","    >>"][depth] || "#"
+      const progress = csv["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
+      const progressStr = (progress)+"%"
+      let updateDate = ""
+      let dateStr = "" 
+      let rank = {
+        "Highest" : "상",
+        "High" : "상",
+        "Medium" : "중",
+        "Low" : "하",
+        "Lowest" : "하",
+      }
+
+      let subManager =""
+
+      if(csv["사용자정의 필드 (담당자(부))"]){
+        const names = idList[csv[`사용자정의 필드 (담당자(부))`]]
+        if(!manager.includes(names)){
+          manager.push(names)
+        }
+        let subManagerIndex = 2
+        while(csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]){
+          subManager+=`\n${idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]]}`;
+          const names = idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]]
+          if(!manager.includes(names)){
+            manager.push(names)
+          }
+          subManagerIndex++
+        }
+      }
+      if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
+        const tempStr = csv["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
+        const date = new Date(tempStr);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        dateStr += `${month}/${day}`;
+      }
+      if(csv["사용자정의 필드 (업데이트 예정일)"]){
+        const tempStr = csv["사용자정의 필드 (업데이트 예정일)"].replace(" 오전", " AM").replace(" 오후", " PM");
+        const date = new Date(tempStr);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const year = date.getFullYear();
+        updateDate = `${year}년 ${month}월 ${day}일`;
+      }
+      
+
+      textList["주요내용"] += `${depthNumberStr}${csv["요약"]}${dateStr ? `(~${dateStr})` : ""}\n`
+      textList["출시목표"] += depth === 1 ? `${updateDate || "미정"}\n` : "\n"
+      textList["우선순위"] += depth === 1 ? rank+"\n" : "\n"
+
+      textList["실적"] += `${progressStr}\n`
+      
+
+    }
+  })
+  
+  return textList
+}
+
+export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):string {
   return csvList.map((csv,i) => {
     let text = ""
     if(isRoot){
@@ -50,7 +132,7 @@ export function convertUpmu (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[
     }
 
     if(csv["children"]?.length > 0){
-      const childText = convertUpmu(csv["children"],depth+1,false,idList)
+      const childText = convertDaily(csv["children"],depth+1,false,idList)
       text += childText
     }
 

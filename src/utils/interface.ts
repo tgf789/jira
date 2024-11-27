@@ -12,7 +12,18 @@ export interface IIssueCSV {
   "설명" : string;
   "요약" : string;
   "이슈 키": string;
+  "우선순위" : "High" | "Low" | "Highest" | "Lowest" | "Medium";
   "사용자정의 필드 (WEHAGO 서비스 구분)" : string;
   "children" : IIssueCSV[];
   [key: `사용자정의 필드 (담당자(부)).${number}`]: string;
+}
+
+
+export interface IWeeklyUpmu {
+  주요내용: string;
+  출시목표: string;
+  우선순위: string;
+  상태: string;
+  실적: string;
+  담당자: string;
 }
