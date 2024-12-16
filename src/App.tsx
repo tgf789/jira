@@ -11,9 +11,9 @@ function App() {
     const file = e.target.files?.[0]
     if(!file) return 
     const result = await getFileToCsvList(file)
+    console.log({result})
     const idList = getIdList()
     const upmu = convertDaily(result as IIssueCSV[],0,true,idList);
-    console.log({upmu});
     (document.getElementById('textArea1') as HTMLTextAreaElement).value = upmu;
 
   }
@@ -21,8 +21,8 @@ function App() {
   const handleChangeWeekly = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if(!file) return 
-    const result = await getFileToCsvList(file)
-    const idList = getIdList()
+    // const result = await getFileToCsvList(file)
+    // const idList = getIdList()
     
   }
 
@@ -33,16 +33,35 @@ function App() {
   }
 
   const getFileToCsvList = async (file: File) => {
-    const result = await new Promise<IIssueCSV[]>((resolve, reject) => {
+    const result = await new Promise<IIssueCSV[]>((resolve) => {
       const reader = new FileReader()
       reader.onload = (e) => {
         const text = e.target?.result
         const result = buildTreeFromCsv(text as string)
-        resolve(result as IIssueCSV[])
+        
+        // Sort children by "사용자정의 필드 (진행 상황(WBSGantt))"
+        const sortChildren = (children: IIssueCSV[]): IIssueCSV[] => {
+          return children.sort((a, b) => {
+            const aValue = a["사용자정의 필드 (진행 상황(WBSGantt))"]
+            const bValue = b["사용자정의 필드 (진행 상황(WBSGantt))"]
+            if (aValue === undefined) return -1
+            if (bValue === undefined) return 1
+            return Number(bValue) - Number(aValue)
+          }).map(child => ({
+            ...child,
+            children: sortChildren(child.children || [])
+          }))
+        }
+
+        const sortedResult = sortChildren(result as IIssueCSV[])
+        resolve(sortedResult)
+      }
+      reader.onerror = (e) => {
+        console.error('File reading error', e)
+        resolve([])
       }
       reader.readAsText(file)
     })
-
     return result
   }
 

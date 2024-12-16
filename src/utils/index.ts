@@ -13,7 +13,7 @@ export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:
 
   const manager : string[] = []
 
-  csvList.forEach((csv,i) => {
+  csvList.forEach((csv) => {
     if(isRoot){
       const text = `${csv["요약"]}\n`
       textList["주요내용"] += text
@@ -86,6 +86,11 @@ export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:
 export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):string {
   return csvList.map((csv,i) => {
     let text = ""
+
+    if(!csv["요약"]){
+      return ""
+    }
+
     if(isRoot){
       text = `  ${csv["요약"]}\n`
     }else{
