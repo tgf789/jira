@@ -148,9 +148,12 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       }
       
       text = `${depthSpace}${depthNumberStr}${csv["요약"]}`
+      if(!dateStr) {
+        console.log("!!dateStr",{csv,dateStr,progressStr,progress})
+      }
 
       if(!is상시){
-        text += `(${childrenLength === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})`
+        text += ` (${childrenLength === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})`
       }
       text +=`\n`
 

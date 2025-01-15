@@ -76,7 +76,7 @@ function App() {
       <p style={{marginBottom:"10px",textAlign:"left"}}>ID/이름 매칭</p>
       <textarea id='usernameText' style={{width:"100%",height:"100px",resize:"none"}} onChange={onChangeIdText}></textarea>
       <hr/>
-      <p style={{marginBottom:"10px",textAlign:"left"}}>필요한 열 : EpicName, WEHAGO 서비스 구분, 담당자, 담당자(부), 변경 종료일, 보고자, 부작업, 상태, 생성일, 설명, 업데이트 예정일, 연결된 이슈, 완료일(WBSGantt), 요약, 우선순위, 일정 변경 사유, 진행 상황(WBSGantt), 키 </p>
+      <p style={{marginBottom:"10px",textAlign:"left"}}>필요한 열 : EpicName, WEHAGO 서비스 구분, 담당자, 담당자(부), 변경 종료일, 보고자, 부작업, 상태, 생성일, 업데이트 예정일, 연결된 이슈, 완료일(WBSGantt), 요약, 우선순위, 일정 변경 사유, 진행 상황(WBSGantt), 키 </p>
       <p style={{marginBottom:"10px",textAlign:"left"}}>CSV 구분 기호 : ;</p>
       <p style={{marginBottom:"10px",textAlign:"left"}}>
         일일보고 변환 : <input type="file" accept='.csv' onChange={handleChangeDaily}/>
