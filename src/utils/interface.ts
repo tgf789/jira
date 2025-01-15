@@ -15,6 +15,7 @@ export interface IIssueCSV {
   "우선순위" : "High" | "Low" | "Highest" | "Lowest" | "Medium";
   "사용자정의 필드 (WEHAGO 서비스 구분)" : string;
   "children" : IIssueCSV[];
+  "레이블" : string;
   [key: `사용자정의 필드 (담당자(부)).${number}`]: string;
 }
 

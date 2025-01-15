@@ -1,5 +1,7 @@
 import {IIssueCSV, IWeeklyUpmu} from "./interface"
 
+const nowDate = new Date();
+
 export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):IWeeklyUpmu {
 
   let textList = {
@@ -84,21 +86,35 @@ export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:
 }
 
 export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):string {
-  return csvList.map((csv,i) => {
+  let numbers = 0
+  return csvList.map((csv) => {
     let text = ""
 
     if(!csv["요약"]){
       return ""
     }
 
+    const childrenLength = csv["children"]?.filter((v)=>v["요약"]).length
+
+    numbers=numbers+1
+
     if(isRoot){
+      if(childrenLength === 0) return ""
       text = `  ${csv["요약"]}\n`
+      
+      console.log(csv)
     }else{
-      console.log({depth})
+      csv["요약"] = csv["요약"].trim().replace(/\[.*] /,"").replace(/^.*\- /,"").replace(/^.*> /,"")
+      const is상시 = csv["레이블"].indexOf("상시") > -1
+
       let depthSpace = "  "+("  ".repeat(depth))
-      let depthNumberStr = depth === 1 ? (i+1)+". " : (i+1)+") "
+      let depthNumberStr = depth > 2 ? ">> " : (depth === 1 ? (numbers)+". " : (numbers)+") ")
       let subManager =""
       let progress = csv["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
+
+      if((progress === 0 || csv["레이블"].indexOf("상시") > -1) && childrenLength === 0){
+        return ""
+      }
       const progressStr = (progress)+"%"
       if(csv["사용자정의 필드 (담당자(부))"]){
         subManager+=`/${idList[csv[`사용자정의 필드 (담당자(부))`]]}`;
@@ -113,11 +129,13 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       if(csv["사용자정의 필드 (변경 종료일)"]){
         const tempStr = csv["사용자정의 필드 (변경 종료일)"].replace(" 오전", " AM").replace(" 오후", " PM");
         const date = new Date(tempStr);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        dateStr += `${month}/${day}→`;
-        if(csv["사용자정의 필드 (일정 변경 사유)"]){
-          remark = `- ${csv["사용자정의 필드 (일정 변경 사유)"]}`
+        if(date.getTime() >= nowDate.getTime()){
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, '0');
+          dateStr += `${month}/${day}→`;
+          if(csv["사용자정의 필드 (일정 변경 사유)"]){
+            remark = `- ${csv["사용자정의 필드 (일정 변경 사유)"]}`
+          }
         }
       }
       if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
@@ -129,7 +147,13 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
 
       }
       
-      text = `${depthSpace}${depthNumberStr}${csv["요약"]} (${csv["children"]?.length === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})\n`
+      text = `${depthSpace}${depthNumberStr}${csv["요약"]}`
+
+      if(!is상시){
+        text += `(${childrenLength === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})`
+      }
+      text +=`\n`
+
       if(remark){
         text += `${depthSpace}  ${remark}\n`
       }
@@ -147,10 +171,9 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
 
 export function csvToJson(csvString:string): object[] {
   // Step 1: Split the CSV into rows
-  const rows = csvString.trim().split("\n");
-
+  const rows = csvString.trim().replace(/\r\n/g,"").split("\n");
   // Step 2: Split the header row and check for duplicate columns
-  const headers = rows[0].split(",");
+  const headers = rows[0].split(";");
   const headerMap: { [key: string]: number } = {}; // Track column indices
   const uniqueHeaders = headers.map((header) => {
       const trimmedHeader = header.trim();
@@ -165,12 +188,13 @@ export function csvToJson(csvString:string): object[] {
 
   // Step 3: Convert rows into JSON
   const data = rows.slice(1).map(row => {
-      const values = row.split(",");
+      const values = row.split(";");
       return uniqueHeaders.reduce((obj: { [key: string]: string }, header, index) => {
           obj[header] = values[index]?.trim() || ""; // Assign trimmed value or empty string
           return obj;
       }, {});
   });
+
 
   return data;
 }
