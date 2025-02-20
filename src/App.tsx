@@ -5,10 +5,12 @@ import { IIssueCSV } from './utils/interface'
 
 
 function App() {
-  const [idText, setIdText] = React.useState<string>(getCookie("idList") || "")
+  const [orgText, setOrgText] = React.useState<string>(getCookie("org") || "WEHAGO개발센터 WEHAGO개발2Unit, 개발3Cell")
+  const [idText, setIdText] = React.useState<string>(getCookie("idList") || "tgf789/손영한")
   
   useEffect(() => {
-    (document.getElementById('usernameText') as HTMLTextAreaElement).value = idText
+    (document.getElementById('usernameText') as HTMLTextAreaElement).value = idText;
+    (document.getElementById('orgText') as HTMLTextAreaElement).value = orgText;
   },[])
 
   const handleChangeDaily = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,7 +19,11 @@ function App() {
     const result = await getFileToCsvList(file)
     console.log({result})
     const idList = getIdList()
-    const upmu = convertDaily(result as IIssueCSV[],0,true,idList);
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+    const prefixText = `[${getOrgList()}] - ${formattedDate.replace(/ /g,"").replace(/\.\(/,"(")}\n\n`
+
+    const upmu = prefixText+"1. 금일진행업무"+convertDaily(result as IIssueCSV[],0,true,idList)+"\n3. 특이사항\n  - 없습니다. ";
     (document.getElementById('textArea1') as HTMLTextAreaElement).value = upmu;
 
   }
@@ -35,6 +41,11 @@ function App() {
     setCookie("idList",idText,365)
     idText.split(",").forEach((v)=>result[v.split("/")[0]]=v.split("/")[1])
     return result
+  }
+
+  const getOrgList = () => {
+    setCookie("org",orgText,365)
+    return orgText
   }
 
   const getFileToCsvList = async (file: File) => {
@@ -67,17 +78,36 @@ function App() {
       }
       reader.readAsText(file)
     })
-    return result
+
+    // Move items with key "W2UNIT-50" to the end of the array
+    const moveKeyToEnd = (items: IIssueCSV[], key: string): IIssueCSV[] => {
+      const withoutKey = items.filter(item => item.key !== key)
+      const withKey = items.filter(item => item.key === key)
+      return [...withoutKey, ...withKey]
+    }
+
+    // 기타업무는 제일 뒤로 보내기 
+    const finalResult = moveKeyToEnd(result, "W2UNIT-50")
+    
+    return finalResult
   }
 
   const onChangeIdText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setIdText(e.target.value)
   }
 
+  const onChangeOrgText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setOrgText(e.target.value)
+  }
+
 
   return (
     <>
     <div style={{width:"960px",}}>  
+
+      <p style={{marginBottom:"10px",textAlign:"left"}}>조직명</p>
+      <textarea id='orgText' style={{width:"100%",height:"100px",resize:"none"}} onChange={onChangeOrgText}></textarea>
+
       <p style={{marginBottom:"10px",textAlign:"left"}}>ID/이름 매칭</p>
       <textarea id='usernameText' style={{width:"100%",height:"100px",resize:"none"}} onChange={onChangeIdText}></textarea>
       <hr/>

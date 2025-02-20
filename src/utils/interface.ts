@@ -8,6 +8,7 @@ export interface IIssueCSV {
   "사용자정의 필드 (완료일(WBSGantt))" : string;
   "사용자정의 필드 (일정 변경 사유)" : string;
   "사용자정의 필드 (진행 상황(WBSGantt))" : string;
+  "사용자정의 필드 (Epic Name)" : string;
   "상태": string;
   "설명" : string;
   "요약" : string;

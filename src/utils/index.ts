@@ -98,10 +98,11 @@ export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:
   return textList
 }
 
-export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):string {
+export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {},isDepthMinus=false):string {
   let numbers = 0
   return csvList.map((csv) => {
     let text = ""
+    let is기타 = csv["요약"] === "[기타]"
 
     if(!csv["요약"]){
       return ""
@@ -110,10 +111,16 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
     const childrenLength = csv["children"]?.filter((v)=>v["요약"]).length
 
     numbers=numbers+1
-
-    if(isRoot){
+    if(isDepthMinus){
+      
+    }else if(isRoot){
       if(childrenLength === 0) return ""
-      text = `  ${csv["요약"]}\n`
+      if(!csv["사용자정의 필드 (Epic Name)"]) return ""
+      if(is기타){
+        text = `\n2. 기타업무\n`
+      }else{
+        text = `\n  ${csv["요약"]}\n`
+      }
       
       console.log(csv)
     }else{
@@ -178,7 +185,7 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
     }
 
     if(csv["children"]?.length > 0){
-      const childText = convertDaily(csv["children"],depth+1,false,idList)
+      const childText = convertDaily(csv["children"],depth+(isDepthMinus ? 0 : 1),false,idList,is기타)
       text += childText
     }
 
