@@ -2,6 +2,19 @@ import {IIssueCSV, IWeeklyUpmu} from "./interface"
 
 const nowDate = new Date();
 
+export function setCookie(name: string, value: string, days: number = 7) {
+  const expires = new Date()
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`
+}
+
+export function getCookie(name: string) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  console.log({parts:[...parts]})
+  if (parts.length === 2) return parts.pop()?.split(';').shift()
+}
+
 export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):IWeeklyUpmu {
 
   let textList = {
@@ -104,7 +117,7 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       
       console.log(csv)
     }else{
-      csv["요약"] = csv["요약"].trim().replace(/\[.*] /,"").replace(/^.*\- /,"").replace(/^.*> /,"")
+      csv["요약"] = csv["요약"].trim().replace(/\[.*] /,"").replace(/^.*\- /,"").replace(/^.*> /,"").replace(/\"/g,"")
       const is상시 = csv["레이블"].indexOf("상시") > -1
 
       let depthSpace = "  "+("  ".repeat(depth))
@@ -113,6 +126,7 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       let progress = csv["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
 
       if((progress === 0 || csv["레이블"].indexOf("상시") > -1) && childrenLength === 0){
+        numbers = numbers - 1
         return ""
       }
       const progressStr = (progress)+"%"
