@@ -145,7 +145,7 @@ function App() {
         <colgroup>
             <col style={{width:"100px"}}/>
             <col style={{width:""}}/>
-            <col style={{width:"100px"}}/>  
+            <col style={{width:"150px"}}/>  
             <col style={{width:"100px"}}/>
             <col style={{width:"100px"}}/>
             <col style={{width:"100px"}}/>

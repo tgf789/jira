@@ -47,6 +47,7 @@ table{
 table p{
   margin: 0;
   padding-left: 10px;
+  font-size: 13px;
 }
 
 table td:nth-child(2) p {

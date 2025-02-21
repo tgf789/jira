@@ -29,9 +29,6 @@ export function convertWeekly (csvList : IIssueCSV[],idList:{[v:string]:string} 
     let managerList : string[] = []
 
     
-    const tempStr = csv["사용자정의 필드 (업데이트 예정일)"].replace(" 오전", " AM").replace(" 오후", " PM");
-    const date = tempStr ? new Date(tempStr) : "";
-    const 출시목표 = date ? `${date.getFullYear()}년 ${(date.getMonth() + 1).toString().padStart(2, '0')}월 ${date.getDate().toString().padStart(2, '0')}일` : "미정"
     let rank = {
       "Highest" : "상",
       "High" : "상",
@@ -54,9 +51,14 @@ export function convertWeekly (csvList : IIssueCSV[],idList:{[v:string]:string} 
 
       const 상태 = progress === 0 ? "예정" : (progress === 100 ? "완료" : "개발")
 
+
+      const tempStr = v["사용자정의 필드 (업데이트 예정일)"].replace(" 오전", " AM").replace(" 오후", " PM");
+      const date = tempStr ? new Date(tempStr) : "";
+      const 출시목표 = date ? `${date.getFullYear()}년 ${(date.getMonth() + 1).toString().padStart(2, '0')}월 ${date.getDate().toString().padStart(2, '0')}일` : "미정"
+
       if(!is상시){
-        if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
-          const tempStr = csv["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
+        if(v["사용자정의 필드 (완료일(WBSGantt))"]){
+          const tempStr = v["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
           const date = new Date(tempStr);
           const month = (date.getMonth() + 1).toString()
           const day = date.getDate().toString()
@@ -81,9 +83,10 @@ export function convertWeekly (csvList : IIssueCSV[],idList:{[v:string]:string} 
           }
         }
 
-        if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
-          const tempStr = csv["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
+        if(v2["사용자정의 필드 (완료일(WBSGantt))"]){
+          const tempStr = v2["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
           const date = new Date(tempStr);
+          console.log({tempStr})
           const month = (date.getMonth() + 1).toString()
           const day = date.getDate().toString()
           upmuText2 += `(~${month}/${day})`;
