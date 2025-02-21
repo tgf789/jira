@@ -1,4 +1,4 @@
-import {IIssueCSV, IWeeklyUpmu} from "./interface"
+import {IIssueCSV, IProject, IWeeklyUpmuItem} from "./interface"
 
 const nowDate = new Date();
 
@@ -15,87 +15,96 @@ export function getCookie(name: string) {
   if (parts.length === 2) return parts.pop()?.split(';').shift()
 }
 
-export function convertWeekly (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {}):IWeeklyUpmu {
-
-  let textList = {
-    "주요내용" : "",
-    "출시목표" : "",
-    "우선순위" : "",
-    "상태" : "",
-    "실적" : "",
-    "담당자" : ""
-  }
-
-  const manager : string[] = []
-
+export function convertWeekly (csvList : IIssueCSV[],idList:{[v:string]:string} = {}) {
+  let projectArray : IProject[] = []
   csvList.forEach((csv) => {
-    if(isRoot){
-      const text = `${csv["요약"]}\n`
-      textList["주요내용"] += text
-      textList["출시목표"] += "\n"
-      textList["우선순위"] += "\n"
-      textList["상태"] += "\n"
-      textList["실적"] += "\n"
-      textList["담당자"] += "\n"
-    }else{
-      const depthNumberStr = ["","","-","  >","    >>"][depth] || "#"
-      const progress = csv["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
-      const progressStr = (progress)+"%"
-      let updateDate = ""
-      let dateStr = "" 
-      let rank = {
-        "Highest" : "상",
-        "High" : "상",
-        "Medium" : "중",
-        "Low" : "하",
-        "Lowest" : "하",
-      }
+    if(!csv["요약"]) return 
+    if(!csv["사용자정의 필드 (Epic Name)"]) return
+    if(csv["요약"] === "[기타]") return 
+    if(csv["children"].length === 0) return
 
-      let subManager =""
+    const projectName = csv["요약"]
 
-      if(csv["사용자정의 필드 (담당자(부))"]){
-        const names = idList[csv[`사용자정의 필드 (담당자(부))`]]
-        if(!manager.includes(names)){
-          manager.push(names)
-        }
-        let subManagerIndex = 2
-        while(csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]){
-          subManager+=`\n${idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]]}`;
-          const names = idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]]
-          if(!manager.includes(names)){
-            manager.push(names)
-          }
-          subManagerIndex++
-        }
-      }
-      if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
-        const tempStr = csv["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
-        const date = new Date(tempStr);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        dateStr += `${month}/${day}`;
-      }
-      if(csv["사용자정의 필드 (업데이트 예정일)"]){
-        const tempStr = csv["사용자정의 필드 (업데이트 예정일)"].replace(" 오전", " AM").replace(" 오후", " PM");
-        const date = new Date(tempStr);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const year = date.getFullYear();
-        updateDate = `${year}년 ${month}월 ${day}일`;
-      }
-      
+    let upperUpmuList : IWeeklyUpmuItem[] = []
+    let managerList : string[] = []
 
-      textList["주요내용"] += `${depthNumberStr}${csv["요약"]}${dateStr ? `(~${dateStr})` : ""}\n`
-      textList["출시목표"] += depth === 1 ? `${updateDate || "미정"}\n` : "\n"
-      textList["우선순위"] += depth === 1 ? rank+"\n" : "\n"
-
-      textList["실적"] += `${progressStr}\n`
-      
-
+    
+    const tempStr = csv["사용자정의 필드 (업데이트 예정일)"].replace(" 오전", " AM").replace(" 오후", " PM");
+    const date = tempStr ? new Date(tempStr) : "";
+    const 출시목표 = date ? `${date.getFullYear()}년 ${(date.getMonth() + 1).toString().padStart(2, '0')}월 ${date.getDate().toString().padStart(2, '0')}일` : "미정"
+    let rank = {
+      "Highest" : "상",
+      "High" : "상",
+      "Medium" : "중",
+      "Low" : "하",
+      "Lowest" : "하",
     }
+    const 우선순위 = rank[csv["우선순위"]] || "중"
+
+
+    csv["children"].forEach((v) => {
+      if(!v["요약"]) return
+      console.log({v})
+      let 주요내용 = v["요약"].trim().replace(/\[.*] /,"").replace(/^.*\- /,"").replace(/^.*> /,"").replace(/\"/g,"")
+      const is상시 = v["레이블"].indexOf("상시") > -1
+      let 하위업무 : IWeeklyUpmuItem[] = []
+
+      let progress = v["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(v["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
+      const 실적 = (progress)+"%"
+
+      const 상태 = progress === 0 ? "예정" : (progress === 100 ? "완료" : "개발")
+
+      if(!is상시){
+        if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
+          const tempStr = csv["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
+          const date = new Date(tempStr);
+          const month = (date.getMonth() + 1).toString()
+          const day = date.getDate().toString()
+          주요내용 += `(~${month}/${day})`;
+        }
+      }
+
+      v["children"].forEach((v2) => {
+        if(!v2["요약"]) return
+        let upmuText2 = v2["요약"].trim().replace(/\[.*] /,"").replace(/^.*\- /,"").replace(/^.*> /,"").replace(/\"/g,"")
+        let progress2 = v2["사용자정의 필드 (진행 상황(WBSGantt))"] ? Number(v2["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) : 0;
+        const progressStr2 = (progress2)+"%"
+        const status = progress2 === 0 ? "예정" : (progress2 === 100 ? "완료" : "개발")
+
+        managerList.push(idList[v2["담당자"]])
+        if(csv["사용자정의 필드 (담당자(부))"]){
+          managerList.push(idList[v2[`사용자정의 필드 (담당자(부))`]])
+          let subManagerIndex = 2
+          while(csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]){
+            managerList.push(idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]])
+            subManagerIndex++
+          }
+        }
+
+        if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
+          const tempStr = csv["사용자정의 필드 (완료일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
+          const date = new Date(tempStr);
+          const month = (date.getMonth() + 1).toString()
+          const day = date.getDate().toString()
+          upmuText2 += `(~${month}/${day})`;
+        }
+
+
+
+        하위업무.push({주요내용:"\t"+upmuText2,실적:progressStr2,상태:status,출시목표:"",우선순위:""})
+      })
+
+
+      if(하위업무.length === 0 && 실적 === "0%") return
+    
+      upperUpmuList.push({주요내용,실적,상태,출시목표,우선순위,하위업무})
+    })
+
+    managerList = Array.from(new Set(managerList));
+    projectArray.push({프로젝트명:projectName,업무:upperUpmuList,담당자:managerList})
   })
-  
-  return textList
+
+  return projectArray
 }
 
 export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {},isDepthMinus=false):string {

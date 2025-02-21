@@ -20,12 +20,26 @@ export interface IIssueCSV {
   [key: `사용자정의 필드 (담당자(부)).${number}`]: string;
 }
 
-
-export interface IWeeklyUpmu {
-  주요내용: string;
-  출시목표: string;
-  우선순위: string;
-  상태: string;
-  실적: string;
-  담당자: string;
+export interface IWeeklyUpmuItem {
+  "주요내용": string;
+  "출시목표": string;
+  "우선순위": string;
+  "상태": string;
+  "실적": string;
+  "하위업무"? : IWeeklyUpmuItem[];
 }
+
+export interface IProject {
+  프로젝트명:string;
+  업무:IWeeklyUpmuItem[];
+  담당자:string[];
+}
+
+// export interface IWeeklyUpmu {
+//   주요내용: string;
+//   출시목표: string;
+//   우선순위: string;
+//   상태: string;
+//   실적: string;
+//   담당자: string;
+// }

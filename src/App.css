@@ -40,3 +40,46 @@
 .read-the-docs {
   color: #888;
 }
+table{
+  border-collapse: collapse;
+  width: 100%;
+}
+table p{
+  margin: 0;
+  padding-left: 10px;
+}
+
+table td:nth-child(2) p {
+  text-align: left;
+  overflow-x: hidden;
+  width: 100%;
+  white-space: nowrap;
+}
+
+table td p:nth-child(odd) {
+  background-color: #494949;
+}
+
+
+/* table tr:nth-child(odd) {
+  background-color: #333333;
+} */
+
+table td {
+  border : #7a7a7a solid 1px;
+  padding: 0;
+  margin: 0;
+}
+
+.lower {
+  padding-left: 30px;
+}
+
+table th {
+  background-color: #a2a2a2;
+  color: rgb(1, 1, 1);
+  border : #7a7a7a solid 1px;
+  padding: 0;
+  margin: 0;
+}
+

@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react'
 import './App.css'
-import {buildTreeFromCsv, convertDaily, setCookie, getCookie} from './utils/index'
-import { IIssueCSV } from './utils/interface'
+import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly} from './utils/index'
+import { IIssueCSV, IProject } from './utils/interface'
 
 
 function App() {
   const [orgText, setOrgText] = React.useState<string>(getCookie("org") || "WEHAGO개발센터 WEHAGO개발2Unit, 개발3Cell")
   const [idText, setIdText] = React.useState<string>(getCookie("idList") || "tgf789/손영한")
+  const [weeklyData, setWeeklyData] = React.useState<IProject[]>()
   
   useEffect(() => {
     (document.getElementById('usernameText') as HTMLTextAreaElement).value = idText;
@@ -28,13 +29,16 @@ function App() {
 
   }
 
-  // const handleChangeWeekly = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = e.target.files?.[0]
-  //   if(!file) return 
-  //   // const result = await getFileToCsvList(file)
-  //   // const idList = getIdList()
-    
-  // }
+  const handleChangeWeekly = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if(!file) return 
+    const result = await getFileToCsvList(file)
+    console.log({result})
+    const idList = getIdList()
+    const upmu = convertWeekly(result as IIssueCSV[],idList)
+    setWeeklyData(upmu)
+    console.log({upmu})
+  }
 
   const getIdList = () => {
     const result : {[v:string]:string} = {}
@@ -103,7 +107,7 @@ function App() {
 
   return (
     <>
-    <div style={{width:"960px",}}>  
+    <div style={{minWidth:"960px",}}>  
 
       <p style={{marginBottom:"10px",textAlign:"left"}}>조직명</p>
       <textarea id='orgText' style={{width:"100%",height:"100px",resize:"none"}} onChange={onChangeOrgText}></textarea>
@@ -118,13 +122,103 @@ function App() {
       </p>  
       
       
-      {/*
       <p style={{marginBottom:"10px",textAlign:"left"}}>
         주간보고 변환 : <input type="file" accept='.csv' onChange={handleChangeWeekly}/>
       </p> 
-      */}
+
 
       <textarea id='textArea1' style={{width:"100%",height:"300px",resize:"none"}}></textarea>
+      {weeklyData && 
+      <table>
+        <thead>
+          <tr>
+            <th>프로젝트명</th>
+            <th>주요 내용</th>
+            <th>출시 목표</th>
+            <th>우선순위</th>
+            <th>상태</th>
+            <th>실적</th>
+            <th>담당자</th>
+          </tr>
+        </thead>
+
+        <colgroup>
+            <col style={{width:"100px"}}/>
+            <col style={{width:""}}/>
+            <col style={{width:"100px"}}/>  
+            <col style={{width:"100px"}}/>
+            <col style={{width:"100px"}}/>
+            <col style={{width:"100px"}}/>
+            <col style={{width:"100px"}}/>
+
+
+
+          </colgroup>
+        
+        <tbody>
+          {weeklyData.map(({담당자,업무,프로젝트명}) => (
+          <tr>
+            <td>
+              {프로젝트명}
+            </td>
+            <td>
+              {업무.map(({주요내용,하위업무})=>(
+                <>
+                <p>{주요내용}&nbsp;</p>
+                {하위업무?.map(({주요내용})=>(
+                  <p className='lower'>{주요내용}&nbsp;</p>
+                ))}
+                </>
+              ))}
+            </td>
+            <td>
+              {업무.map(({출시목표,하위업무})=>(
+                <>
+                <p>{출시목표}&nbsp;</p>
+                {하위업무?.map(({출시목표})=>(
+                  <p>{출시목표}&nbsp;</p>
+                ))}
+                </>
+              ))}
+            </td>
+            <td>
+              {업무.map(({우선순위,하위업무})=>(
+                <>
+                <p>{우선순위}</p>
+                {하위업무?.map(({우선순위})=>(
+                  <p>{우선순위}&nbsp;</p>
+                ))}
+                </>
+              ))}
+            </td>
+            <td>
+              {업무.map(({상태,하위업무})=>(
+                <>
+                <p>{상태}&nbsp;</p>
+                {하위업무?.map(({상태})=>(
+                  <p>{상태}&nbsp;</p>
+                ))}
+                </>
+              ))}
+            </td>
+            <td>
+              {업무.map(({실적,하위업무})=>(
+                <>
+                <p>{실적}&nbsp;</p>
+                {하위업무?.map(({실적})=>(
+                  <p>{실적}&nbsp;</p>
+                ))}
+                </>
+              ))}
+            </td>
+            <td>
+              {담당자.filter((v)=>v).map((v) => <p>{v}</p>)}
+            </td>
+          </tr>
+          ))}
+        </tbody>
+      </table>
+      }
 
     </div>
     </>
