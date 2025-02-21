@@ -122,12 +122,15 @@ function App() {
       </p>  
       
       
+
+      <textarea id='textArea1' style={{width:"100%",height:"300px",resize:"none"}}></textarea>
+
+
       <p style={{marginBottom:"10px",textAlign:"left"}}>
         주간보고 변환 : <input type="file" accept='.csv' onChange={handleChangeWeekly}/>
       </p> 
 
 
-      <textarea id='textArea1' style={{width:"100%",height:"300px",resize:"none"}}></textarea>
       {weeklyData && 
       <table>
         <thead>
