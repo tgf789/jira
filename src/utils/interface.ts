@@ -13,6 +13,7 @@ export interface IIssueCSV {
   "설명" : string;
   "요약" : string;
   "이슈 키": string;
+  "변경일" : string;
   "우선순위" : "High" | "Low" | "Highest" | "Lowest" | "Medium";
   "사용자정의 필드 (WEHAGO 서비스 구분)" : string;
   "children" : IIssueCSV[];

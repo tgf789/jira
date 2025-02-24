@@ -110,7 +110,7 @@ export function convertWeekly (csvList : IIssueCSV[],idList:{[v:string]:string} 
   return projectArray
 }
 
-export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {},isDepthMinus=false):string {
+export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{[v:string]:string} = {},isDepthMinus=false,isUpdateWarn=false):string {
   let numbers = 0
   return csvList.map((csv) => {
     let text = ""
@@ -184,9 +184,22 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       if(!dateStr) {
         console.log("!!dateStr",{csv,dateStr,progressStr,progress})
       }
+      
 
       if(!is상시){
         text += ` (${childrenLength === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})`
+      }
+
+      if(isUpdateWarn){
+        const tempStr = csv["변경일"].replace(" 오전", " AM").replace(" 오후", " PM");
+        const date = new Date(tempStr);
+        const todayZero = new Date();
+        todayZero.setHours(0, 0, 0, 0);
+
+        if(date.getTime() < todayZero.getTime()){
+          text += "⚠️"
+        }
+
       }
       text +=`\n`
 
@@ -197,7 +210,7 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
     }
 
     if(csv["children"]?.length > 0){
-      const childText = convertDaily(csv["children"],depth+(isDepthMinus ? 0 : 1),false,idList,is기타)
+      const childText = convertDaily(csv["children"],depth+(isDepthMinus ? 0 : 1),false,idList,is기타,isUpdateWarn)
       text += childText
     }
 

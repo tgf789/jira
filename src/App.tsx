@@ -7,6 +7,7 @@ import { IIssueCSV, IProject } from './utils/interface'
 function App() {
   const [orgText, setOrgText] = React.useState<string>(getCookie("org") || "WEHAGO개발센터 WEHAGO개발2Unit, 개발3Cell")
   const [idText, setIdText] = React.useState<string>(getCookie("idList") || "tgf789/손영한")
+  const [isUpdateWarn, setIsUpdateWarn] = React.useState<boolean>(getCookie("isUpdateWarn") === "T")
   const [weeklyData, setWeeklyData] = React.useState<IProject[]>()
   
   useEffect(() => {
@@ -21,10 +22,11 @@ function App() {
     console.log({result})
     const idList = getIdList()
     const today = new Date();
+    const isUpdateWarn = getIsUpdateWarn()
     const formattedDate = today.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
     const prefixText = `[${getOrgList()}] - ${formattedDate.replace(/ /g,"").replace(/\.\(/,"(")}\n\n`
 
-    const upmu = prefixText+"1. 금일진행업무"+convertDaily(result as IIssueCSV[],0,true,idList)+"\n3. 특이사항\n  - 없습니다. ";
+    const upmu = prefixText+"1. 금일진행업무"+convertDaily(result as IIssueCSV[],0,true,idList,false,isUpdateWarn)+"\n3. 특이사항\n  - 없습니다. ";
     (document.getElementById('textArea1') as HTMLTextAreaElement).value = upmu;
 
   }
@@ -50,6 +52,11 @@ function App() {
   const getOrgList = () => {
     setCookie("org",orgText,365)
     return orgText
+  }
+
+  const getIsUpdateWarn = () => {
+    setCookie("isUpdateWarn",isUpdateWarn?"T":"F",365)
+    return isUpdateWarn
   }
 
   const getFileToCsvList = async (file: File) => {
@@ -118,7 +125,7 @@ function App() {
       <p style={{marginBottom:"10px",textAlign:"left"}}>필요한 열 : EpicName, WEHAGO 서비스 구분, 담당자, 담당자(부), 변경 종료일, 보고자, 부작업, 상태, 생성일, 업데이트 예정일, 연결된 이슈, 완료일(WBSGantt), 요약, 우선순위, 일정 변경 사유, 진행 상황(WBSGantt), 키, 레이블 </p>
       <p style={{marginBottom:"10px",textAlign:"left"}}>CSV 구분 기호 : ;</p>
       <p style={{marginBottom:"10px",textAlign:"left"}}>
-        일일보고 변환 : <input type="file" accept='.csv' onChange={handleChangeDaily}/>
+        일일보고 변환 : <label htmlFor='isUpdateWarn'> <input id='isUpdateWarn' type='checkbox' checked={isUpdateWarn} onChange={()=>setIsUpdateWarn(_=>!_)}/> 변경일 경고</label> | <input type="file" accept='.csv' onChange={handleChangeDaily}/>
       </p>  
       
       
