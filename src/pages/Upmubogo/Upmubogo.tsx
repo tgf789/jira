@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
-import './App.css'
-import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly} from './utils/index'
-import { IIssueCSV, IProject } from './utils/interface'
+import './Upmubogo.css'
+import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly} from '../../utils/index'
+import { IIssueCSV, IProject } from '../../utils/interface'
 
 
 function App() {

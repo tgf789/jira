@@ -196,7 +196,13 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
         const todayZero = new Date();
         todayZero.setHours(0, 0, 0, 0);
 
-        if(date.getTime() < todayZero.getTime()){
+
+        const tempStr2 = csv["생성일"].replace(" 오전", " AM").replace(" 오후", " PM");
+        const date2 = new Date(tempStr2);
+
+
+
+        if(date.getTime() < todayZero.getTime() && date2.getTime() < todayZero.getTime()){
           text += "⚠️"
         }
 
@@ -250,7 +256,7 @@ export function csvToJson(csvString:string): object[] {
 
 
 
-export function buildTreeFromCsv(csvString: string) {
+export function buildTreeFromCsv(csvString: string,jiraId?:string) {
   // Step 2: Convert CSV to JSON
   const jsonData = csvToJson(csvString);
   // console.log({jsonData})
@@ -295,7 +301,24 @@ export function buildTreeFromCsv(csvString: string) {
       return {
           key: key,
           ...data,
-          children: (treeMap[key] || []).map(buildNode)
+          children: (treeMap[key] || []).filter((key2)=>{
+            const data : IIssueCSV | undefined = issues.find(issue => issue.key === key2) as IIssueCSV | undefined;
+            if(!data) return false 
+            if(jiraId && (treeMap[key2] || [])){
+              let managerList = []
+              managerList.push(data["담당자"])
+              if(data["사용자정의 필드 (담당자(부))"]){
+                managerList.push(data[`사용자정의 필드 (담당자(부))`])
+                let subManagerIndex = 2
+                while(data[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]){
+                  managerList.push(data[`사용자정의 필드 (담당자(부)).${subManagerIndex}`])
+                  subManagerIndex++
+                }
+              }
+              if(!managerList.includes(jiraId)) return false
+            }
+            return true 
+          }).map(buildNode)
       };
   }
 
