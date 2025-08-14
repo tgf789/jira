@@ -1,6 +1,6 @@
 import {IIssueCSV, IProject, IWeeklyUpmuItem} from "./interface"
 
-const nowDate = new Date();
+// const nowDate = new Date();
 
 export function setCookie(name: string, value: string, days: number = 7) {
   const expires = new Date()
@@ -150,10 +150,10 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       }
       const progressStr = (progress)+"%"
       if(csv["사용자정의 필드 (담당자(부))"]){
-        subManager+=`/${idList[csv[`사용자정의 필드 (담당자(부))`]]}`;
+        subManager+=`/${(idList[csv[`사용자정의 필드 (담당자(부))`]] || csv[`사용자정의 필드 (담당자(부))`])}`;
         let subManagerIndex = 2
         while(csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]){
-          subManager+=`/${idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]]}`;
+          subManager+=`/${(idList[csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`]] || csv[`사용자정의 필드 (담당자(부)).${subManagerIndex}`])}`;
           subManagerIndex++
         }
       }
@@ -161,14 +161,17 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
       let remark = ""
       if(csv["사용자정의 필드 (변경 종료일)"]){
         const tempStr = csv["사용자정의 필드 (변경 종료일)"].replace(" 오전", " AM").replace(" 오후", " PM");
+          console.log(`🚀 ~ convertDaily ~ csv["사용자정의 필드 (일정 변경 사유)"]:`, csv["사용자정의 필드 (일정 변경 사유)"],csv)
         const date = new Date(tempStr);
-        if(date.getTime() >= nowDate.getTime()){
+        // if(date.getTime() >= nowDate.getTime()){
           const month = (date.getMonth() + 1).toString().padStart(2, '0');
           const day = date.getDate().toString().padStart(2, '0');
           dateStr += `${month}/${day}→`;
           if(csv["사용자정의 필드 (일정 변경 사유)"]){
-            remark = `- ${csv["사용자정의 필드 (일정 변경 사유)"]}`
-          }
+            const result = (csv["사용자정의 필드 (일정 변경 사유)"].match(/:([^:]+)$/)?.[1].trim() || csv["사용자정의 필드 (일정 변경 사유)"]).replace(/\"/g,"");
+
+            remark = `- ${result}`
+          // }
         }
       }
       if(csv["사용자정의 필드 (완료일(WBSGantt))"]){
@@ -180,14 +183,14 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
 
       }
       
-      text = `${depthSpace}${depthNumberStr}${csv["요약"]}`
+      text = `${depthSpace}${depthNumberStr}${csv["key"]} ${csv["요약"]}`
       if(!dateStr) {
         console.log("!!dateStr",{csv,dateStr,progressStr,progress})
       }
       
 
       if(!is상시){
-        text += ` (${childrenLength === 0 ? idList[csv["담당자"]]+subManager+", " : ""}~${dateStr}, ${progressStr})`
+        text += ` (${childrenLength === 0 ? (idList[csv["담당자"]] || csv["담당자"])+subManager+", " : ""}~${dateStr}, ${progressStr})`
       }
 
       if(isUpdateWarn){
@@ -202,7 +205,7 @@ export function convertDaily (csvList : IIssueCSV[],depth=0,isRoot=true,idList:{
 
 
 
-        if(date.getTime() < todayZero.getTime() && date2.getTime() < todayZero.getTime()){
+        if((date.getTime() < todayZero.getTime() || !tempStr) && date2.getTime() < todayZero.getTime()){
           text += "⚠️"
         }
 

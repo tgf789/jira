@@ -8,6 +8,7 @@ import { format as numfmt } from 'numfmt'
 const Sunggwa : React.FC<ISunggwaProps> = () => {
   const [idText, setIdText] = React.useState<string>(getCookie("idText") || "tgf789")
   const [sunggwaData, setSunggwaData] = React.useState<IIssueCSV[]>()
+  const [isUpdateDate, setIsUpdateDate] = React.useState<boolean>(true)
 
   useEffect(() => {
     (document.getElementById('idText') as HTMLTextAreaElement).value = idText;
@@ -84,10 +85,11 @@ const Sunggwa : React.FC<ISunggwaProps> = () => {
       <p style={{marginBottom:"10px",textAlign:"left"}}>필요한 열 : EpicName, WEHAGO 서비스 구분, 담당자, 담당자(부), 변경 종료일, 보고자, 부작업, 상태, 생성일, 업데이트 예정일, 연결된 이슈, 완료일(WBSGantt), 요약, 우선순위, 일정 변경 사유, 진행 상황(WBSGantt), 키, 레이블, 변경일, 시작일(WBSGantt) </p>
       <p style={{marginBottom:"10px",textAlign:"left"}}>CSV 구분 기호 : ;</p>
 
-        
+        <p style={{textAlign:"left"}}><label htmlFor='isUpdateDate'> <input id='isUpdateDate' type='checkbox' checked={isUpdateDate} onChange={()=>setIsUpdateDate(_=>!_)}/> 시작일/완료일 포함</label></p>
         <p style={{marginBottom:"10px",textAlign:"left"}}>
-          성과평가 변환 : <input type="file" accept='.csv' onChange={handleChangeSunggwa}/>
+          실적 변환 : <input type="file" accept='.csv' onChange={handleChangeSunggwa}/>
         </p> 
+        {sunggwaData && 
 
         <table>
           <thead>
@@ -95,6 +97,7 @@ const Sunggwa : React.FC<ISunggwaProps> = () => {
               <th>서비스</th>
               <th>주요 내용</th>
               <th>상세 내용</th>
+              <th>JIRA</th>
             </tr>
           </thead>
 
@@ -102,8 +105,9 @@ const Sunggwa : React.FC<ISunggwaProps> = () => {
               <col style={{width:"100px"}}/>
               <col style={{width:"250px"}}/>
               <col style={{width:""}}/> 
+              <col style={{width:"100px"}}/>
             </colgroup>
-          <tbody>
+          <tbody style={{background:"#fff"}}>
             {sunggwaData?.map(({children,요약}) =>{
               
 
@@ -119,14 +123,16 @@ const Sunggwa : React.FC<ISunggwaProps> = () => {
                   const startDateStr = v["사용자정의 필드 (시작일(WBSGantt))"].replace(" 오전", " AM").replace(" 오후", " PM");
                   const startDate = startDateStr ? new Date(startDateStr) : "";
                   const formattedStartDate = startDate ? numfmt("mm/dd", startDate, { locale: 'ko-KR' }) : "";  // numfmt 
+                  const keys = v.children.map((v2)=>v2.key).join("%2C")
+                  const jiraLink = `http://jira.duzon.com:8080/issues/?jql=key%20in%20(${keys})`
                   
                   return (  
                     <tr key={v.key}>
-                      {i===0 && <td rowSpan={children.length}>{요약.replace(/\[|\]/g, "")}</td>}
+                      {i===0 && <td style={{color:"#000"}} rowSpan={children.length}>{요약.replace(/\[|\]/g, "")}</td>}
                       
                       <td>
-                        <div style={{textAlign:"center"}}>{v["요약"].replace(/^.*\] /,"").replace(/\"/,"")}</div>
-                        {(formattedStartDate && formattedEndDate) && <div style={{textAlign:"center"}}>({formattedStartDate}~{formattedEndDate})</div>}
+                        <div style={{textAlign:"left",color:"#000"}}>{v["요약"].replace(/^.*\] /,"").replace(/\"/,"")}</div>
+                        {(formattedStartDate && formattedEndDate && isUpdateDate) && <div style={{textAlign:"left",color:"#000"}}>({formattedStartDate}~{formattedEndDate})</div>}
                         
                       </td>
                       <td>
@@ -141,10 +147,13 @@ const Sunggwa : React.FC<ISunggwaProps> = () => {
                           const formattedStartDate = numfmt("mm/dd", startDate, { locale: 'ko-KR' });  // numfmt 
 
                           return (
-                            <p style={{textAlign:"left"}} key={v2.key}>{i2+1}. {v2["요약"].replace(/^.*(>|\d|-) /,"").replace(/\"/,"")} ({formattedStartDate}~{formattedEndDate})</p>
+                            <div style={{textAlign:"left",color:"#000"}} key={v2.key}>{i2+1}. {v2["요약"].replace(/^.*(>|\d|-) /,"").replace(/\"/,"")} {isUpdateDate && `(${formattedStartDate}~${formattedEndDate})`}</div>
                           )
                         }
                         )}
+                      </td>
+                      <td>
+                        <a href={jiraLink}>{v.children.length}이슈</a>
                       </td>
                     </tr>
                   )
@@ -155,6 +164,7 @@ const Sunggwa : React.FC<ISunggwaProps> = () => {
             })} 
           </tbody>
         </table>
+      }
 
       </div>
     </>

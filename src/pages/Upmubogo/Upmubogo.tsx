@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import './Upmubogo.css'
 import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly} from '../../utils/index'
 import { IIssueCSV, IProject } from '../../utils/interface'
+import Sunggwa from "../Sunggwa/Sunggwa"
 
 
 function App() {
@@ -114,6 +115,11 @@ function App() {
 
   return (
     <>
+    <h1>실적 변환</h1>
+    <Sunggwa/>
+    <hr style={{marginTop:"50px"}}/>
+
+    <h1>업무보고 변환</h1>
     <div style={{minWidth:"960px",}}>  
 
       <p style={{marginBottom:"10px",textAlign:"left"}}>조직명</p>
