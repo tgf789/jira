@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import './Upmubogo.css'
 import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly} from '../../utils/index'
 import { IIssueCSV, IProject } from '../../utils/interface'
+import { setJiraAuth, getIssueTreeByFilterId, debugJiraFields, getAllIssuesByFilterId } from '../../utils/jiraApi'
 import Sunggwa from "../Sunggwa/Sunggwa"
 
 
@@ -10,6 +11,12 @@ function App() {
   const [idText, setIdText] = React.useState<string>(getCookie("idList") || "tgf789/손영한")
   const [isUpdateWarn, setIsUpdateWarn] = React.useState<boolean>(getCookie("isUpdateWarn") === "T")
   const [weeklyData, setWeeklyData] = React.useState<IProject[]>()
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  
+  // JIRA 인증 상태
+  const [jiraUsername, setJiraUsername] = useState<string>(getCookie("jiraUsername") || "")
+  const [jiraPassword, setJiraPassword] = useState<string>("")
+  const [isJiraLoggedIn, setIsJiraLoggedIn] = useState<boolean>(false)
   
   useEffect(() => {
     (document.getElementById('usernameText') as HTMLTextAreaElement).value = idText;
@@ -112,6 +119,74 @@ function App() {
     setOrgText(e.target.value)
   }
 
+  // JIRA 로그인 처리
+  const handleJiraLogin = () => {
+    if (!jiraUsername || !jiraPassword) {
+      alert("JIRA ID와 비밀번호를 입력해주세요.");
+      return;
+    }
+    setJiraAuth(jiraUsername, jiraPassword);
+    setCookie("jiraUsername", jiraUsername, 365);
+    setIsJiraLoggedIn(true);
+    alert("JIRA 인증 정보가 설정되었습니다.");
+  };
+
+  // JIRA API로 일일보고 데이터 조회
+  const handleFetchDailyFromJira = async () => {
+    if (!isJiraLoggedIn) {
+      alert("먼저 JIRA 로그인을 해주세요.");
+      return;
+    }
+
+    const FILTER_ID = "65101";
+    setIsLoading(true);
+    
+    try {
+      console.log(`JIRA 필터 ${FILTER_ID} 조회 시작...`);
+      
+      // 1. 원본 JIRA 데이터 조회 (디버깅용)
+      const rawIssues = await getAllIssuesByFilterId(FILTER_ID);
+      console.log("=== 원본 JIRA 데이터 ===");
+      console.log("원본 이슈 목록:", rawIssues);
+      
+      // 첫 번째 이슈의 필드 구조 확인
+      if (rawIssues.length > 0) {
+        debugJiraFields(rawIssues[0]);
+      }
+      
+      // 2. IIssueCSV 트리 구조로 변환
+      const treeResult = await getIssueTreeByFilterId(FILTER_ID);
+      console.log("=== 변환된 IIssueCSV 트리 구조 ===");
+      console.log("트리 데이터:", treeResult);
+      
+      // 3. 기존 convertDaily 함수로 일일보고 생성
+      const idList = getIdList();
+      const today = new Date();
+      const isUpdateWarnValue = getIsUpdateWarn();
+      const formattedDate = today.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+      const prefixText = `[${getOrgList()}] - ${formattedDate.replace(/ /g,"").replace(/\.\(/,"(")}\n\n`;
+
+      // W2UNIT-50 (기타업무)를 맨 뒤로 이동
+      const moveKeyToEnd = (items: IIssueCSV[], key: string): IIssueCSV[] => {
+        const withoutKey = items.filter(item => item.key !== key);
+        const withKey = items.filter(item => item.key === key);
+        return [...withoutKey, ...withKey];
+      };
+      const sortedResult = moveKeyToEnd(treeResult, "W2UNIT-50");
+
+      const upmu = prefixText + "1. 금일진행업무" + convertDaily(sortedResult, 0, true, idList, false, isUpdateWarnValue) + "\n3. 특이사항\n  - 없습니다. ";
+      (document.getElementById('textArea1') as HTMLTextAreaElement).value = upmu;
+      
+      console.log("=== 일일보고 생성 완료 ===");
+      
+    } catch (error) {
+      console.error("JIRA API 호출 실패:", error);
+      alert("JIRA API 호출에 실패했습니다. 콘솔을 확인해주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <>
@@ -128,8 +203,54 @@ function App() {
       <p style={{marginBottom:"10px",textAlign:"left"}}>ID/이름 매칭</p>
       <textarea id='usernameText' style={{width:"100%",height:"100px",resize:"none"}} onChange={onChangeIdText}></textarea>
       <hr/>
+
+      {/* JIRA 로그인 섹션 */}
+      <div style={{padding:"15px", backgroundColor:"#2a2a2a", borderRadius:"8px", marginBottom:"20px"}}>
+        <p style={{marginBottom:"10px",textAlign:"left", fontWeight:"bold"}}>🔐 JIRA 로그인</p>
+        <div style={{display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap"}}>
+          <input 
+            type="text" 
+            placeholder="JIRA ID" 
+            value={jiraUsername}
+            onChange={(e) => setJiraUsername(e.target.value)}
+            style={{padding:"8px", width:"150px"}}
+          />
+          <input 
+            type="password" 
+            placeholder="JIRA 비밀번호" 
+            value={jiraPassword}
+            onChange={(e) => setJiraPassword(e.target.value)}
+            style={{padding:"8px", width:"150px"}}
+          />
+          <button 
+            onClick={handleJiraLogin}
+            style={{padding:"8px 20px", cursor:"pointer", backgroundColor: isJiraLoggedIn ? "#4CAF50" : "#007bff", color:"white", border:"none", borderRadius:"4px"}}
+          >
+            {isJiraLoggedIn ? "✓ 로그인됨" : "로그인"}
+          </button>
+          {isJiraLoggedIn && <span style={{color:"#4CAF50"}}>인증 완료</span>}
+        </div>
+        <p style={{marginTop:"8px", fontSize:"12px", color:"#888", textAlign:"left"}}>
+          ※ 비밀번호는 저장되지 않으며, 페이지 새로고침 시 다시 입력해야 합니다.
+        </p>
+      </div>
+
+      <hr/>
       <p style={{marginBottom:"10px",textAlign:"left"}}>필요한 열 : EpicName, WEHAGO 서비스 구분, 담당자, 담당자(부), 변경 종료일, 보고자, 부작업, 상태, 생성일, 업데이트 예정일, 연결된 이슈, 완료일(WBSGantt), 요약, 우선순위, 일정 변경 사유, 진행 상황(WBSGantt), 키, 레이블, 변경일 </p>
       <p style={{marginBottom:"10px",textAlign:"left"}}>CSV 구분 기호 : ;</p>
+      
+      <p style={{marginBottom:"10px",textAlign:"left"}}>
+        <strong>[API 조회]</strong> 일일보고 JIRA 조회 : 
+        <button 
+          onClick={handleFetchDailyFromJira} 
+          disabled={isLoading}
+          style={{marginLeft:"10px", padding:"5px 15px", cursor: isLoading ? "not-allowed" : "pointer"}}
+        >
+          {isLoading ? "조회 중..." : "JIRA에서 조회 (Filter: 65101)"}
+        </button>
+      </p>
+      <hr style={{margin:"10px 0"}}/>
+
       <p style={{marginBottom:"10px",textAlign:"left"}}>
         일일보고 변환 : <label htmlFor='isUpdateWarn'> <input id='isUpdateWarn' type='checkbox' checked={isUpdateWarn} onChange={()=>setIsUpdateWarn(_=>!_)}/> 변경일 경고</label> | <input type="file" accept='.csv' onChange={handleChangeDaily}/>
       </p>  
