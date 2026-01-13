@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import './Upmubogo.css'
-import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly} from '../../utils/index'
+import {buildTreeFromCsv, convertDaily, setCookie, getCookie, convertWeekly, convertToReportStructure, formatDailyReport} from '../../utils/index'
 import { IIssueCSV, IProject } from '../../utils/interface'
 import { setJiraAuth, getIssueTreeByFilterId, debugJiraFields, getAllIssuesByFilterId } from '../../utils/jiraApi'
 import Sunggwa from "../Sunggwa/Sunggwa"
@@ -159,13 +159,6 @@ function App() {
       console.log("=== 변환된 IIssueCSV 트리 구조 ===");
       console.log("트리 데이터:", treeResult);
       
-      // 3. 기존 convertDaily 함수로 일일보고 생성
-      const idList = getIdList();
-      const today = new Date();
-      const isUpdateWarnValue = getIsUpdateWarn();
-      const formattedDate = today.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
-      const prefixText = `[${getOrgList()}] - ${formattedDate.replace(/ /g,"").replace(/\.\(/,"(")}\n\n`;
-
       // W2UNIT-50 (기타업무)를 맨 뒤로 이동
       const moveKeyToEnd = (items: IIssueCSV[], key: string): IIssueCSV[] => {
         const withoutKey = items.filter(item => item.key !== key);
@@ -174,7 +167,17 @@ function App() {
       };
       const sortedResult = moveKeyToEnd(treeResult, "W2UNIT-50");
 
-      const upmu = prefixText + "1. 금일진행업무" + convertDaily(sortedResult, 0, true, idList, false, isUpdateWarnValue) + "\n3. 특이사항\n  - 없습니다. ";
+      // 3. [고도화] 구조화된 오브젝트로 변환
+      const orgName = getOrgList();
+      const reportStructure = convertToReportStructure(sortedResult, orgName);
+      console.log("=== 구조화된 일일보고 데이터 ===");
+      console.log("IDailyReport:", reportStructure);
+      
+      // 4. [고도화] 텍스트 포매팅
+      const idList = getIdList();
+      const isUpdateWarnValue = getIsUpdateWarn();
+      const upmu = formatDailyReport(reportStructure, idList, isUpdateWarnValue);
+      
       (document.getElementById('textArea1') as HTMLTextAreaElement).value = upmu;
       
       console.log("=== 일일보고 생성 완료 ===");

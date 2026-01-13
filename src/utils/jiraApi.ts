@@ -22,9 +22,9 @@ const CUSTOM_FIELD_MAP = {
   "시작일(WBSGantt)": "customfield_12104",         // 날짜 문자열
   
   // 일정 관련
-  "변경 종료일": "customfield_13900",              // 날짜 문자열
+  "변경 종료일": "customfield_10958",              // 날짜 문자열
   "업데이트 예정일": "customfield_13901",          // 날짜 문자열
-  // "일정 변경 사유": 실제 필드 ID 확인 필요 (customfield_13925는 고객요청 템플릿)
+  "일정 변경 사유": "customfield_14419",           // 텍스트
   
   // 담당자 관련
   "담당자(부)": "customfield_10801",               // 사용자 객체 (추정, 확인 필요)
@@ -338,7 +338,7 @@ function convertJiraIssueToCSV(issue: IJiraIssue): IIssueCSV {
     "사용자정의 필드 (시작일(WBSGantt))": getCustomFieldValue(fields, CUSTOM_FIELD_MAP["시작일(WBSGantt)"]),
     "사용자정의 필드 (변경 종료일)": getCustomFieldValue(fields, CUSTOM_FIELD_MAP["변경 종료일"]),
     "사용자정의 필드 (업데이트 예정일)": getCustomFieldValue(fields, CUSTOM_FIELD_MAP["업데이트 예정일"]),
-    "사용자정의 필드 (일정 변경 사유)": "",  // 실제 필드 ID 확인 필요
+    "사용자정의 필드 (일정 변경 사유)": getCustomFieldValue(fields, CUSTOM_FIELD_MAP["일정 변경 사유"]),
     "사용자정의 필드 (담당자(부))": subAssigneeResult["사용자정의 필드 (담당자(부))"] || "",
     "사용자정의 필드 (WEHAGO 서비스 구분)": getCustomFieldValue(fields, CUSTOM_FIELD_MAP["WEHAGO 서비스 구분"]),
     

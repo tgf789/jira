@@ -1,4 +1,4 @@
-import {IIssueCSV, IProject, IWeeklyUpmuItem} from "./interface"
+import {IIssueCSV, IProject, IWeeklyUpmuItem, IDailyReport, IDailyReportService, IDailyReportTask} from "./interface"
 
 // const nowDate = new Date();
 
@@ -14,6 +14,303 @@ export function getCookie(name: string) {
   console.log({parts:[...parts]})
   if (parts.length === 2) return parts.pop()?.split(';').shift()
 }
+
+// ============================================
+// 일일보고 구조화 함수들 (고도화)
+// ============================================
+
+/**
+ * IIssueCSV에서 담당자(부) 목록 추출
+ */
+function extractSubManagers(csv: IIssueCSV): string[] {
+  const subManagers: string[] = [];
+  
+  if (csv["사용자정의 필드 (담당자(부))"]) {
+    subManagers.push(csv["사용자정의 필드 (담당자(부))"]);
+    
+    let index = 2;
+    while (csv[`사용자정의 필드 (담당자(부)).${index}`]) {
+      subManagers.push(csv[`사용자정의 필드 (담당자(부)).${index}`]);
+      index++;
+    }
+  }
+  
+  return subManagers;
+}
+
+/**
+ * 요약 텍스트 정제 (불필요한 접두사 제거)
+ */
+function cleanSummary(summary: string): string {
+  return summary
+    .trim()
+    .replace(/\[.*] /, "")      // [XXX] 형태 제거
+    .replace(/^.*\- /, "")      // "XXX - " 형태 제거
+    .replace(/^.*> /, "")       // "XXX > " 형태 제거
+    .replace(/\"/g, "");        // 따옴표 제거
+}
+
+/**
+ * IIssueCSV를 IDailyReportTask로 변환
+ */
+function convertToTask(csv: IIssueCSV): IDailyReportTask {
+  const progress = csv["사용자정의 필드 (진행 상황(WBSGantt))"] 
+    ? Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0) 
+    : 0;
+  
+  const is상시 = (csv["레이블"] || "").indexOf("상시") > -1;
+  
+  return {
+    key: csv["key"],
+    요약: cleanSummary(csv["요약"] || ""),
+    담당자: csv["담당자"] || "",
+    담당자부: extractSubManagers(csv),
+    완료일: csv["사용자정의 필드 (완료일(WBSGantt))"] || "",
+    변경종료일: csv["사용자정의 필드 (변경 종료일)"] || "",
+    진행률: progress,
+    일정변경사유: csv["사용자정의 필드 (일정 변경 사유)"] || "",
+    is상시,
+    변경일: csv["변경일"] || "",
+    생성일: csv["생성일"] || "",
+    하위업무: (csv["children"] || [])
+      .filter(child => child["요약"])
+      .map(child => convertToTask(child))
+      .filter(task => isValidTask(task)), // 유효한 업무만 포함
+  };
+}
+
+/**
+ * 유효한 업무인지 검사 (진행률 0%이고 하위업무 없으면 제외)
+ */
+function isValidTask(task: IDailyReportTask): boolean {
+  // 상시 업무이고 하위업무가 없으면 제외
+  if (task.is상시 && task.하위업무.length === 0) {
+    return false;
+  }
+  
+  // 진행률 0%이고 하위업무가 없으면 제외
+  if (task.진행률 === 0 && task.하위업무.length === 0) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * IIssueCSV 트리를 IDailyReport 구조로 변환
+ * @param csvList - buildTreeFromCsv 또는 JIRA API에서 가져온 트리 데이터
+ * @param orgName - 조직명
+ * @returns 구조화된 일일보고 데이터
+ */
+export function convertToReportStructure(
+  csvList: IIssueCSV[],
+  orgName: string = ""
+): IDailyReport {
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('ko-KR', { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit', 
+    weekday: 'short' 
+  }).replace(/ /g, "").replace(/\.\(/, "(");
+
+  const 금일진행업무: IDailyReportService[] = [];
+  const 기타업무: IDailyReportTask[] = [];
+
+  csvList.forEach((csv) => {
+    // 요약이 없거나 Epic Name이 없으면 스킵
+    if (!csv["요약"]) return;
+    if (!csv["사용자정의 필드 (Epic Name)"]) return;
+    
+    const is기타 = csv["요약"] === "[기타]";
+    const children = csv["children"]?.filter(v => v["요약"]) || [];
+    
+    // 하위 업무가 없으면 스킵 (빈 서비스 제거)
+    if (children.length === 0) return;
+
+    if (is기타) {
+      // 기타업무 처리
+      children.forEach(child => {
+        const task = convertToTask(child);
+        if (isValidTask(task)) {
+          기타업무.push(task);
+        }
+      });
+    } else {
+      // 일반 서비스 처리
+      const 업무목록: IDailyReportTask[] = [];
+      
+      children.forEach(child => {
+        const task = convertToTask(child);
+        if (isValidTask(task)) {
+          업무목록.push(task);
+        }
+      });
+
+      // 유효한 업무가 있는 서비스만 추가 (빈 서비스 제거!)
+      if (업무목록.length > 0) {
+        금일진행업무.push({
+          서비스명: csv["요약"],
+          업무: 업무목록,
+        });
+      }
+    }
+  });
+
+  return {
+    조직명: orgName,
+    날짜: formattedDate,
+    금일진행업무,
+    기타업무,
+    특이사항: "없습니다.",
+  };
+}
+
+/**
+ * 날짜 문자열 파싱 (한국어 오전/오후 처리)
+ */
+function parseDateString(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const normalized = dateStr.replace(" 오전", " AM").replace(" 오후", " PM");
+  const date = new Date(normalized);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * 날짜를 MM/DD 형식으로 포매팅
+ */
+function formatDateMMDD(dateStr: string): string {
+  const date = parseDateString(dateStr);
+  if (!date) return "";
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${month}/${day}`;
+}
+
+/**
+ * IDailyReport를 텍스트 형식으로 포매팅
+ * @param report - 구조화된 일일보고 데이터
+ * @param idList - JIRA ID → 한글 이름 매핑
+ * @param isUpdateWarn - 변경일 경고 표시 여부
+ * @returns 포매팅된 일일보고 텍스트
+ */
+export function formatDailyReport(
+  report: IDailyReport,
+  idList: { [key: string]: string } = {},
+  isUpdateWarn: boolean = false
+): string {
+  let result = "";
+
+  // 헤더
+  result += `[${report.조직명}] - ${report.날짜}\n\n`;
+  result += "1. 금일진행업무";
+
+  // 금일진행업무
+  report.금일진행업무.forEach(service => {
+    result += `\n  ${service.서비스명}\n`;
+    result += formatTaskList(service.업무, 1, idList, isUpdateWarn);
+  });
+
+  // 기타업무
+  if (report.기타업무.length > 0) {
+    result += "\n2. 기타업무\n";
+    result += formatTaskList(report.기타업무, 1, idList, isUpdateWarn, false);
+  }
+
+  // 특이사항
+  result += `\n3. 특이사항\n  - ${report.특이사항}`;
+
+  return result;
+}
+
+/**
+ * 업무 목록을 텍스트로 포매팅 (재귀)
+ */
+function formatTaskList(
+  tasks: IDailyReportTask[],
+  depth: number,
+  idList: { [key: string]: string },
+  isUpdateWarn: boolean,
+  isDepthMinus: boolean = false
+): string {
+  let result = "";
+  let number = 0;
+
+  tasks.forEach(task => {
+    number++;
+    
+    const depthSpace = "  " + "  ".repeat(depth);
+    const depthNumberStr = depth > 2 ? ">> " : (depth === 1 ? `${number}. ` : `${number}) `);
+    
+    // 담당자 문자열 생성
+    const mainManager = idList[task.담당자] || task.담당자;
+    const subManagerStr = task.담당자부
+      .map(id => idList[id] || id)
+      .filter(Boolean)
+      .map(name => `/${name}`)
+      .join("");
+    
+    // 날짜 문자열 생성
+    let dateStr = "";
+    if (task.변경종료일) {
+      dateStr += formatDateMMDD(task.변경종료일) + "→";
+    }
+    if (task.완료일) {
+      dateStr += formatDateMMDD(task.완료일);
+    }
+    
+    // 일정 변경 사유
+    let remark = "";
+    if (task.변경종료일 && task.일정변경사유) {
+      const reasonMatch = task.일정변경사유.match(/:([^:]+)$/);
+      const reason = reasonMatch ? reasonMatch[1].trim() : task.일정변경사유;
+      remark = `- ${reason.replace(/\"/g, "")}`;
+    }
+
+    // 업무 라인 생성
+    let line = `${depthSpace}${depthNumberStr}${task.key} ${task.요약}`;
+    
+    if (!task.is상시 && dateStr) {
+      const hasChildren = task.하위업무.length > 0;
+      const managerPart = hasChildren ? "" : `${mainManager}${subManagerStr}, `;
+      line += ` (${managerPart}~${dateStr}, ${task.진행률}%)`;
+    }
+
+    // 변경일 경고
+    if (isUpdateWarn) {
+      const updateDate = parseDateString(task.변경일);
+      const createDate = parseDateString(task.생성일);
+      const todayZero = new Date();
+      todayZero.setHours(0, 0, 0, 0);
+
+      if (updateDate && createDate) {
+        if ((updateDate.getTime() < todayZero.getTime() || !task.변경일) && 
+            createDate.getTime() < todayZero.getTime()) {
+          line += "⚠️";
+        }
+      }
+    }
+
+    result += line + "\n";
+
+    // 일정 변경 사유 출력
+    if (remark) {
+      result += `${depthSpace}  ${remark}\n`;
+    }
+
+    // 하위 업무 재귀 처리
+    if (task.하위업무.length > 0) {
+      const nextDepth = isDepthMinus ? depth : depth + 1;
+      result += formatTaskList(task.하위업무, nextDepth, idList, isUpdateWarn, false);
+    }
+  });
+
+  return result;
+}
+
+// ============================================
+// 기존 함수들 (하위 호환성 유지)
+// ============================================
 
 export function convertWeekly (csvList : IIssueCSV[],idList:{[v:string]:string} = {}) {
   let projectArray : IProject[] = []
