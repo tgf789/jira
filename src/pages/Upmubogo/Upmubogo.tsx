@@ -132,13 +132,13 @@ function App() {
   };
 
   // JIRA API로 일일보고 데이터 조회
-  const handleFetchDailyFromJira = async () => {
+  const handleFetchDailyFromJira = async (FILTER_ID = "65101") => {
     if (!isJiraLoggedIn) {
       alert("먼저 JIRA 로그인을 해주세요.");
       return;
     }
 
-    const FILTER_ID = "65101";
+    
     setIsLoading(true);
     
     try {
@@ -245,11 +245,19 @@ function App() {
       <p style={{marginBottom:"10px",textAlign:"left"}}>
         <strong>[API 조회]</strong> 일일보고 JIRA 조회 : 
         <button 
-          onClick={handleFetchDailyFromJira} 
+          onClick={() => handleFetchDailyFromJira("65101")} 
           disabled={isLoading}
           style={{marginLeft:"10px", padding:"5px 15px", cursor: isLoading ? "not-allowed" : "pointer"}}
         >
-          {isLoading ? "조회 중..." : "JIRA에서 조회 (Filter: 65101)"}
+          {isLoading ? "조회 중..." : "JIRA에서 조회 (일일보고)"}
+        </button>
+
+        <button 
+          onClick={() => handleFetchDailyFromJira("70924")} 
+          disabled={isLoading}
+          style={{marginLeft:"10px", padding:"5px 15px", cursor: isLoading ? "not-allowed" : "pointer"}}
+        >
+          {isLoading ? "조회 중..." : "JIRA에서 조회 (지난주간 업무)"}
         </button>
       </p>
       <hr style={{margin:"10px 0"}}/>
