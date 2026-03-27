@@ -1,6 +1,6 @@
-# Jira Report Pro (v2)
+# Jira Report Pro (Desktop v2)
 
-JIRA 데이터를 기반으로 정교하고 아름다운 일기 보고서를 생성하는 프리미엄 웹 어플리케이션입니다. JIRA API를 직접 연동하여 담당자별 업무 현황을 분석하고, 사용자 요청에 최적화된 포맷으로 변환해줍니다.
+JIRA 데이터를 기반으로 정교하고 아름다운 일일 보고서를 생성하는 프리미엄 **데스크탑 애플리케이션**입니다. Electron을 기반으로 구축되어 브라우저의 CORS 및 Mixed Content 제약 없이 JIRA API와 직접 통신하며, 담당자별 업무 현황을 분석하여 최적화된 리포트를 생성합니다.
 
 ## 🌟 핵심 기능
 
@@ -8,8 +8,9 @@ JIRA 데이터를 기반으로 정교하고 아름다운 일기 보고서를 생
 - 현대적인 반투명 유리 질감의 인터페이스와 다크 모드 지원.
 - 부드러운 애니메이션과 직관적인 대시보드 레이아웃.
 
-### 2. 스마트 JIRA 연동
-- **자동 로그인**: 최초 로그인 시 인증 정보를 쿠키에 저장하여 재접속 시 자동 인증.
+### 2. 스마트 JIRA 연동 (Bypass CORS)
+- **데스크탑 네이티브**: Electron 환경에서 실행되어 보안 정책 제약 없이 JIRA 서버와 직접 통신.
+- **자동 로그인**: 최초 로그인 시 인증 정보를 로컬에 저장하여 재접속 시 자동 인증 (localStorage).
 - **다중 계정 조회**: 여러 개의 JIRA ID를 동시에 입력하여 통합 보고서 생성.
 
 ### 3. 고도화된 보고서 엔진
@@ -20,10 +21,10 @@ JIRA 데이터를 기반으로 정교하고 아름다운 일기 보고서를 생
 - **정보 포함 옵션**: JIRA 키 표시, JIRA 링크 포함 등 다양한 커스터마이징 제공.
 
 ## 🛠 기술 스택
+- **Platform**: Electron (Desktop App)
 - **Frontend**: React (v19) + TypeScript + Vite (v8)
 - **Styling**: Vanilla CSS (Custom Design System)
-- **State Management**: React Hooks (useState, useEffect)
-- **Utilities**: `date-fns` (날짜 처리), Browser Cookies (세션 유지)
+- **Storage**: `localStorage` (세션 및 설정 유지)
 
 ## 🚀 시작하기
 
@@ -38,16 +39,17 @@ nvm use
 # 의존성 설치
 npm install
 
-# 개발 서버 실행
-npm run dev
+# 데스크탑 앱 실행 (개발용)
+npm run electron:dev
 
-# 빌드
-npm run build
+# 실행 파일 빌드 (배포용)
+npm run electron:build
 ```
+*빌드 후 `/release` 폴더에서 실행 파일(.dmg, .app, .zip 등)을 확인할 수 있습니다.*
 
 ## 📖 사용 방법
 1. **로그인**: JIRA 아이디와 API 토큰 또는 비밀번호를 입력합니다.
-2. **담당자 설정**: 왼쪽 사이드바에서 보고서를 생성할 JIRA ID들을 입력합니다.
+2. **담당자 설정**: 왼쪽 사이드바에서 보고서를 생성할 JIRA ID들을 입력합니다. (쿠키 대신 localStorage에 자동 저장됩니다.)
 3. **기간 선택**: 퀵 버튼(오늘, 이번주 등)이나 달력을 통해 날짜 범위를 설정합니다.
 4. **옵션 선택**: 미완료 경고, 키 표시, 링크 포함 여부를 선택합니다.
 5. **업무 조회**: 'JIRA 업무 조회' 버튼을 눌러 결과물을 생성합니다.

@@ -9,7 +9,7 @@
  */
 import type { IIssueCSV, ISearchParams } from "./interface";
 
-const JIRA_BASE_URL = "/api/jira";
+const JIRA_BASE_URL = "http://jira.duzon.com:8080";
 
 // JIRA 인증 정보 저장 (세션 내 유지)
 let jiraAuth: { username: string; password: string } | null = null;

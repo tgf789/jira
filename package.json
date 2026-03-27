@@ -1,13 +1,18 @@
 {
-  "name": "jiraupmu2",
+  "homepage": "https://tgf789.github.io/jira",
+  "name": "jiratoupmu",
   "private": true,
   "version": "0.0.0",
+  "main": "main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173/jira/ && electron .\"",
+    "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
@@ -22,12 +27,31 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "gh-pages": "^6.2.0",
     "globals": "^17.4.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.douzone.jreport",
+    "productName": "JiraReportPro",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "main.cjs"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    }
   }
 }

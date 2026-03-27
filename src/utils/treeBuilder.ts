@@ -1,27 +1,5 @@
+
 import type { IIssueCSV } from "./interface";
-
-/**
- * JIRA 이슈 목록(CSV 형태)을 트리 구조로 변환 (issuelinks 기반)
- */
-export function buildIssueTree(issues: IIssueCSV[]): IIssueCSV[] {
-  const issueMap = new Map<string, IIssueCSV>();
-  issues.forEach(issue => issueMap.set(issue.key, issue));
-
-  // 자식 -> 부모 매핑 수집 (issuelinks 기반)
-  const childToParentMap = new Map<string, string>();
-  
-  // IIssueCSV 자체는 issuelinks 정보를 직접 가지고 있지 않으므로, 
-  // 원본 IJiraIssue에서 관계를 추출하거나 빌딩 시점에 관계를 주입해야 함.
-  // 여기서는 jiraApi.ts에서 이미 resolveParentChain을 통해 부모-자식 관계가 
-  // issuelinks(inward: "포함됨")에 명시되어 있다고 가정함.
-  // 하지만 IIssueCSV에는 issuelinks가 없음. 
-  // -> 해결: jiraApi.ts의 convertJiraIssueToCSV 실행 시점에 관계 정보를 임시 보관하거나,
-  //    여기서 IJiraIssue[]를 인자로 받아 직접 처리하는 것이 정확함.
-  
-  // [수정] treeBuilder는 IJiraIssue[]를 인자로 받아 내부에서 변환과 연결을 동시에 처리하도록 변경.
-  return []; // 아래 로직으로 대체
-}
-
 import type { IJiraIssue } from "./jiraApi";
 import { convertJiraIssueToCSV } from "./jiraApi";
 

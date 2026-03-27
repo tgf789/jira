@@ -1,19 +1,19 @@
-# Project Overview: Jira Report Pro
+# Project Overview: Jira Report Pro (Desktop)
 
 본 문서는 `Jira Report Pro` 프로젝트의 기술적 설계와 핵심 로직을 상세히 설명합니다.
 
 ## 🏗 아키텍처 구조
 
-프로젝트는 React 기반의 단일 페이지 어플리케이션(SPA)으로, 클라이언트 사이드에서 모든 JIRA 데이터 처리 및 포매팅을 수행합니다.
+프로젝트는 **Electron**을 기반으로 한 데스크탑 어플리케이션(Native App)으로 전환되었습니다. 이는 브라우저의 보안 제약(CORS, Mixed Content)을 우회하여 사내 JIRA 서버(`http://jira.duzon.com:8080`)와 직접 통신하기 위한 최적의 아키텍처 선택입니다.
 
-### 디렉토리 구조
-- `src/components/`: 재사용 가능한 UI 컴포넌트 (Login, Sidebar, Output 등)
-- `src/pages/DailyReport/`: 메인 대시보드 페이지 및 관련 스타일
-- `src/utils/`: 핵심 비즈니스 로직
-  - `jiraApi.ts`: JIRA REST API 통신 및 재귀적 부모 체인 조회
-  - `treeBuilder.ts`: 평면적인 이슈 리스트를 부모-자식 트리 구조로 변환
-  - `reportFormatter.ts`: 정렬된 트리 데이터를 최종 텍스트 리포트로 변환
-  - `cookie.ts`: 세션 및 사용자 설정 영속성 관리
+### 핵심 구성
+- **Main Process (main.cjs)**: Electron의 메인 프로세스로, 앱의 생명주기를 관리하며 `webSecurity: false` 설정을 통해 JIRA API에 대한 직접 접근 권한을 부여합니다.
+- **Renderer Process (Vite + React)**: 사용자 인터페이스를 담당하며, 메인 프로세스가 허용한 통로를 통해 JIRA API와 통신합니다.
+- **디렉토리 구조**:
+  - `src/components/`: 재사용 가능한 UI 컴포넌트
+  - `src/pages/DailyReport/`: 메인 대시보드 페이지
+  - `src/utils/`: 핵심 비즈니스 로직 (Jira API, Tree Building, Formatting)
+  - `main.cjs`: Electron 진입점 및 창 설정
 
 ## 🌳 Hierarchical Tree Processing Pipeline
 
@@ -40,7 +40,7 @@ JIRA JQL 검색은 특정 담당자와 기간에 해당하는 '말단 업무'들
 
 ### Phase 4: Multi-level Chronological Sorting (다계층 연대순 정렬)
 보고서의 가독성을 위해 모든 업무를 시간순으로 배치합니다.
-- **기준 필드**: `customfield_12100` (WBSGantt 시작일)을 최우선으로 하며, 없을 경우 생성일 등을 보조적으로 사용합니다.
+- **기준 필드**: `customfield_12104` (WBSGantt 시작일)을 최우선으로 합니다.
 - **재귀 정렬**: 
   1. 서비스 그룹들을 서비스명 가나다순으로 정렬합니다.
   2. 각 서비스 내의 **상위 업무(Root)**들을 시작일 오름차순으로 정렬합니다.
@@ -53,6 +53,6 @@ JIRA JQL 검색은 특정 담당자와 기간에 해당하는 '말단 업무'들
 - **Glass Effects**: `backdrop-filter: blur(12px)`와 반투명한 배경색을 사용하여 레이어의 깊이감을 표현합니다.
 - **Gradients**: `linear-gradient`와 `radial-gradient`를 조합하여 현대적인 심해 테마 배경을 구현했습니다.
 
-## 🔒 보안 및 영속성
-- **Credential Storage**: 사용자의 편의를 위해 JIRA 인증 정보를 브라우저 쿠키에 저장합니다. (B64 인코딩 적용)
-- **Local State Sync**: `isUpdateWarn`, `showJiraKey`, `includeJiraLink` 등 사용자 기호 설정은 상태 변화 시 자동으로 쿠키에 동기화되어 다음 접속 시에도 유지됩니다.
+## 🔒 보안 및 영속성 (Desktop Persistence)
+- **Direct API Link**: 브라우저의 샌드박스 정책을 벗어나 JIRA 서버와 HTTP/HTTPS 제약 없이 직접 연결됩니다.
+- **Local Storage Management**: 사용자의 JIRA 인증 정보 및 개인 설정(`isUpdateWarn`, `showJiraKey`, `includeJiraLink` 등)은 `localStorage`에 안전하게 저장됩니다. 이는 데스크탑 환경에서 쿠키보다 훨씬 안정적인 데이터 영속성을 제공하며, 앱 재시작 시에도 모든 상태를 완벽히 복원합니다.
