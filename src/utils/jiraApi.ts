@@ -9,7 +9,9 @@
  */
 import type { IIssueCSV, ISearchParams } from "./interface";
 
-const JIRA_BASE_URL = "http://jira.duzon.com:8080";
+const JIRA_BASE_URL = window.navigator.userAgent.toLowerCase().includes('electron')
+  ? "http://jira.duzon.com:8080"
+  : "/api/jira";
 
 // JIRA 인증 정보 저장 (세션 내 유지)
 let jiraAuth: { username: string; password: string } | null = null;
@@ -24,6 +26,8 @@ export const CUSTOM_FIELD_MAP = {
   "담당자(부)": "customfield_10801",
   "Epic Name": "customfield_10831",
   "WEHAGO 서비스 구분": "customfield_13502",
+  "시작일": "customfield_10832",
+  "종료일": "customfield_10833",
 } as const;
 
 export interface IJiraIssue {
@@ -40,6 +44,8 @@ export interface IJiraIssue {
     labels: string[];
     description: string | null;
     issuelinks: IJiraIssueLink[];
+    issuetype: { name: string; subtask: boolean };
+    parent?: { id: string; key: string; fields: { summary: string } };
     [key: string]: any;
   };
 }
@@ -125,7 +131,7 @@ export async function searchByIdsAndDateRange(params: ISearchParams): Promise<IJ
   if (params.jiraIds.length === 0) return [];
 
   const idListStr = params.jiraIds.map(id => `"${id}"`).join(",");
-  const jql = `assignee in (${idListStr}) AND cf[12104] <= "${params.endDate}" AND cf[12105] >= "${params.startDate}"`;
+  const jql = `assignee in (${idListStr}) AND (cf[12104] <= "${params.endDate}" OR cf[10832] <= "${params.endDate}") AND (cf[12105] >= "${params.startDate}" OR cf[10833] >= "${params.startDate}")`;
   
   console.log("JQL Search:", jql);
   return getAllIssuesByJql(jql);
@@ -155,6 +161,13 @@ export async function resolveParentChain(issues: IJiraIssue[], maxDepth: number 
           }
         }
       });
+      // 2. parent 필드 기반 부모 검색 (Sub-task 대응)
+      if (issue.fields.parent && issue.fields.parent.key) {
+        const parentKey = issue.fields.parent.key;
+        if (!allIssuesMap.has(parentKey)) {
+          parentKeysToFetch.add(parentKey);
+        }
+      }
     });
 
     if (parentKeysToFetch.size === 0) break;
@@ -237,8 +250,20 @@ export function convertJiraIssueToCSV(issue: IJiraIssue): IIssueCSV {
     "사용자정의 필드 (일정 변경 사유)": getVal(CUSTOM_FIELD_MAP["일정 변경 사유"]),
     "사용자정의 필드 (담당자(부))": "",
     "사용자정의 필드 (WEHAGO 서비스 구분)": getVal(CUSTOM_FIELD_MAP["WEHAGO 서비스 구분"]),
+    "시작일": getVal(CUSTOM_FIELD_MAP["시작일"]),
+    "종료일": getVal(CUSTOM_FIELD_MAP["종료일"]),
+    "issuetype": fields.issuetype,
+    "parent": fields.parent,
     "children": [],
   };
+
+  // 시작일/종료일 (WBSGantt) 값이 없는 경우 "시작일", "종료일" 본 필드 값으로 대체
+  if (!csv["사용자정의 필드 (시작일(WBSGantt))"]) {
+    csv["사용자정의 필드 (시작일(WBSGantt))"] = csv["시작일"];
+  }
+  if (!csv["사용자정의 필드 (완료일(WBSGantt))"]) {
+    csv["사용자정의 필드 (완료일(WBSGantt))"] = csv["종료일"];
+  }
 
   // 부담당자 처리 (배열인 경우 대비)
   const subAssignee = fields[CUSTOM_FIELD_MAP["담당자(부)"]];

@@ -12,12 +12,12 @@ function cleanSummary(summary: string): string {
     .replace(/\"|'/g, "");    // 따옴표 제거
 }
 
-/**
- * 유효한 업무인지 검사 (진행률 0%이고 하위업무 없으면 제외)
- */
 function isValidTask(task: IDailyReportTask): boolean {
+  // 상시 업무면서 하위 업무가 없으면 제외 (노이즈 방지)
   if (task.is상시 && task.하위업무.length === 0) return false;
-  if (task.진행률 === 0 && task.하위업무.length === 0) return false;
+  
+  // 진행률 0%라도 사용자가 직접 조회한 업무거나 부작업일 수 있으므로 그대로 둡니다.
+  // (필요 시 추후에만 다시 추가)
   return true;
 }
 
@@ -52,6 +52,7 @@ export function convertToTask(csv: IIssueCSV): IDailyReportTask {
     is상시,
     변경일: csv["변경일"] || "",
     생성일: csv["생성일"] || "",
+    isSubtask: !!csv.issuetype?.subtask,
     하위업무: (csv.children || [])
       .map(child => convertToTask(child))
       .filter(task => isValidTask(task)),

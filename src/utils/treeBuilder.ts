@@ -26,6 +26,11 @@ export function buildTreeFromIssues(issues: IJiraIssue[]): IIssueCSV[] {
         childToParentMap.set(link.outwardIssue.key, issue.key);
       }
     });
+
+    // parent 필드 기반 관계 설정 (Sub-task 대응)
+    if (issue.fields.parent && issue.fields.parent.key) {
+      childToParentMap.set(issue.key, issue.fields.parent.key);
+    }
   });
 
   // 3. 자식을 부모에 연결
