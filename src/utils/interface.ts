@@ -38,10 +38,6 @@ export interface IProject {
   담당자:string[];
 }
 
-// ============================================
-// 일일보고 구조화 인터페이스 (고도화)
-// ============================================
-
 /**
  * 일일보고 개별 업무 항목
  */
@@ -50,6 +46,7 @@ export interface IDailyReportTask {
   요약: string;                   // 업무 제목 (정제된)
   담당자: string;                 // 담당자 ID
   담당자부: string[];             // 부담당자 ID 목록
+  시작일: string;                 // WBSGantt 시작일
   완료일: string;                 // WBSGantt 완료일
   변경종료일: string;             // 변경된 종료일 (일정 연기 시)
   진행률: number;                 // 0~100
@@ -79,11 +76,11 @@ export interface IDailyReport {
   특이사항: string;
 }
 
-// export interface IWeeklyUpmu {
-//   주요내용: string;
-//   출시목표: string;
-//   우선순위: string;
-//   상태: string;
-//   실적: string;
-//   담당자: string;
-// }
+/**
+ * 검색 파라미터
+ */
+export interface ISearchParams {
+  jiraIds: string[];              // JIRA 아이디 배열
+  startDate: string;              // "YYYY-MM-DD"
+  endDate: string;                // "YYYY-MM-DD"
+}
