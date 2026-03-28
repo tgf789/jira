@@ -25,13 +25,33 @@ function isValidTask(task: IDailyReportTask): boolean {
  * IIssueCSV -> IDailyReportTask 변환
  */
 export function convertToTask(csv: IIssueCSV): IDailyReportTask {
-  const progress = Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0);
+  let progress = Number(csv["사용자정의 필드 (진행 상황(WBSGantt))"] || 0);
+
+  // WBSGantt 진행률이 0이거나 없을 경우, 다양한 시간 기록 필드 활용
+  if (progress === 0) {
+    // 1. JIRA 자체 집계 진행률(이슈 + 하위 업무 합산) 우선 확인
+    if (csv.aggregateprogress && typeof csv.aggregateprogress.percent === 'number') {
+      progress = csv.aggregateprogress.percent;
+    } 
+    // 2. 직접 계산 (집계 값 우선, 없을 경우 단일 업무 값 사용)
+    else {
+      const spent = csv.aggregatetimespent ?? csv.timespent ?? csv.timetracking?.timeSpentSeconds ?? 0;
+      const original = csv.aggregatetimeoriginalestimate ?? csv.timeoriginalestimate ?? csv.timetracking?.originalEstimateSeconds ?? 0;
+      
+      if (original > 0) {
+        progress = Math.round((spent / original) * 100);
+      }
+    }
+    if (progress > 100) progress = 100;
+  }
+
   const is상시 = (csv["레이블"] || "").indexOf("상시") > -1;
 
   // 부 담당자 수집
   const subManagers: string[] = [];
-  if (csv["사용자정의 필드 (담당자(부))"]) {
-    subManagers.push(csv["사용자정의 필드 (담당자(부))"]);
+  const firstSub = csv["사용자정의 필드 (담당자(부))"];
+  if (firstSub) {
+    subManagers.push(firstSub);
     let i = 2;
     while (csv[`사용자정의 필드 (담당자(부)).${i}`]) {
       subManagers.push(csv[`사용자정의 필드 (담당자(부)).${i}`]);
@@ -182,13 +202,15 @@ function formatTaskList(
 ): string {
   let result = "";
   tasks.forEach((task, index) => {
-    // 담당자 이름 매핑
+    // 담당자 이름 매핑 및 중복 제거 (메인 담당자와 중복되는 부담당자 제외)
     const mainM = idList[task.담당자] || task.담당자;
-    const subM = task.담당자부
+    const subMList = task.담당자부
       .map(id => idList[id] || id)
-      .filter(Boolean)
-      .map(name => `/${name}`)
-      .join("");
+      .filter(name => name && name !== mainM); // 메인 담당자와 이름이 같으면 제외
+    
+    // 고유한 이름만 추출
+    const uniqueSubM = Array.from(new Set(subMList));
+    const subM = uniqueSubM.length > 0 ? `/${uniqueSubM.join("/")}` : "";
 
     // 날짜 포맷팅
     const startMD = formatDateMD(task.시작일 || "");

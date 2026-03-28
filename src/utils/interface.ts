@@ -20,6 +20,16 @@ export interface IIssueCSV {
   "생성일" : string;
   "우선순위" : "High" | "Low" | "Highest" | "Lowest" | "Medium";
   "사용자정의 필드 (WEHAGO 서비스 구분)" : string;
+  "timetracking"?: {
+    originalEstimateSeconds?: number;
+    timeSpentSeconds?: number;
+    remainingEstimateSeconds?: number;
+  };
+  "aggregateprogress"?: { progress: number; total: number; percent?: number };
+  "timeoriginalestimate"?: number | null;
+  "timespent"?: number | null;
+  "aggregatetimeoriginalestimate"?: number | null;
+  "aggregatetimespent"?: number | null;
   "issuetype": { name: string; subtask: boolean };
   "parent"?: { id: string; key: string; fields: { summary: string } };
   "children" : IIssueCSV[];

@@ -23,7 +23,7 @@ export const CUSTOM_FIELD_MAP = {
   "변경 종료일": "customfield_10958",
   "업데이트 예정일": "customfield_13901",
   "일정 변경 사유": "customfield_14419",
-  "담당자(부)": "customfield_10801",
+  "담당자(부)": "customfield_19400",
   "Epic Name": "customfield_10831",
   "WEHAGO 서비스 구분": "customfield_13502",
   "시작일": "customfield_10832",
@@ -46,6 +46,16 @@ export interface IJiraIssue {
     issuelinks: IJiraIssueLink[];
     issuetype: { name: string; subtask: boolean };
     parent?: { id: string; key: string; fields: { summary: string } };
+    timetracking?: {
+      originalEstimateSeconds?: number;
+      timeSpentSeconds?: number;
+      remainingEstimateSeconds?: number;
+    };
+    aggregateprogress?: { progress: number; total: number; percent?: number };
+    timeoriginalestimate?: number | null;
+    timespent?: number | null;
+    aggregatetimeoriginalestimate?: number | null;
+    aggregatetimespent?: number | null;
     [key: string]: any;
   };
 }
@@ -254,6 +264,12 @@ export function convertJiraIssueToCSV(issue: IJiraIssue): IIssueCSV {
     "종료일": getVal(CUSTOM_FIELD_MAP["종료일"]),
     "issuetype": fields.issuetype,
     "parent": fields.parent,
+    "timetracking": fields.timetracking,
+    "aggregateprogress": fields.aggregateprogress,
+    "timeoriginalestimate": fields.timeoriginalestimate,
+    "timespent": fields.timespent,
+    "aggregatetimeoriginalestimate": fields.aggregatetimeoriginalestimate,
+    "aggregatetimespent": fields.aggregatetimespent,
     "children": [],
   };
 
@@ -265,17 +281,24 @@ export function convertJiraIssueToCSV(issue: IJiraIssue): IIssueCSV {
     csv["사용자정의 필드 (완료일(WBSGantt))"] = csv["종료일"];
   }
 
-  // 부담당자 처리 (배열인 경우 대비)
+  // 부담당자 처리 (배열, 단일 객체, 또는 단순 문자열 대응)
   const subAssignee = fields[CUSTOM_FIELD_MAP["담당자(부)"]];
+  const extractName = (user: any): string => {
+    if (!user) return "";
+    if (typeof user === "string") return user;
+    return user.displayName || user.name || "";
+  };
+
   if (Array.isArray(subAssignee)) {
     subAssignee.forEach((user, i) => {
-      const name = user?.displayName || user?.name || "";
-      if (i === 0) csv["사용자정의 필드 (담당자(부))"] = name;
-      else csv[`사용자정의 필드 (담당자(부)).${i + 1}`] = name;
+      const name = extractName(user);
+      if (name) {
+        if (i === 0) csv["사용자정의 필드 (담당자(부))"] = name;
+        else csv[`사용자정의 필드 (담당자(부)).${i + 1}`] = name;
+      }
     });
   } else if (subAssignee) {
-    const name = subAssignee.displayName || subAssignee.name || "";
-    csv["사용자정의 필드 (담당자(부))"] = name;
+    csv["사용자정의 필드 (담당자(부))"] = extractName(subAssignee);
   }
 
   return csv as IIssueCSV;
